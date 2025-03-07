@@ -21,6 +21,19 @@ class CryptographicCalculator:
         return steps
 
     @staticmethod
+    def __log_extended_euclid(a: int, b: int, x: int, y: int) -> None:
+        signx = (x * a) >= 0
+        signy = (y * b) >= 0
+
+        x_new, a_new = (abs(x), abs(a)) if x < 0 and a < 0 else (x, a)
+        y_new, b_new = (abs(y), abs(b)) if y < 0 and b < 0 else (y, b)
+
+        if signx and not signy:
+            logger.info(f" 1 = {x_new} * {a_new} + {y_new} * {b_new}")
+        else:
+            logger.info(f" 1 = {y_new} * {b_new} + {x} * {a_new}")
+
+    @staticmethod
     def extended_euclid(a: int, b: int) -> Tuple[int, int, int]:
         """
         Returns a tuple (gcd, x, y) such that a*x + b*y == gcd, which is the greatest common divisor of a and b.
@@ -32,9 +45,9 @@ class CryptographicCalculator:
         x = y1 - (b // a) * x1
         y = x1
 
-        logger.info(f" 1 = {y} * {b} + {x} * {a}")
+        CryptographicCalculator.__log_extended_euclid(a, b, x, y)
 
-        return gcd, x, y
+        return abs(gcd), x, y
 
 
 if __name__ == "__main__":
