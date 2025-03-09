@@ -1,5 +1,6 @@
 import logging
 from functools import reduce
+from operator import mul
 from typing import List, Tuple
 
 from cryptography_calculator.utils.logger import LogStack
@@ -171,6 +172,60 @@ class CryptographicCalculator:
         logstack.add_message(f"Final Result: {x % N}")
         return x % N
 
+    @staticmethod
+    def fast_exponentiation(a: int, p: int, m: int) -> int:
+        """Computes (a^p) % m using fast exponentiation (recursive method).
+
+        Parameters
+        ----------
+        a : int
+            The base integer.
+        p : int
+            The exponent.
+        m : int
+            The modulus.
+
+        Returns
+        -------
+        int
+            The result of (a^p) % m.
+        """
+        if p == 0:
+            logstack.add_message(f"Power is 0, result is trivial = 1")
+            return 1
+
+        p_bin = bin(p)[2:]
+        powers = [2**power for power, value in enumerate(p_bin[::-1]) if value == "1"]
+        powers_str = " * ".join([f"{a}^{power}" for power in powers])
+
+        logstack.add_message(f"Binary for {p} = {p_bin}\n")
+        logstack.add_message(f"\t\t\tSteps:")
+        logstack.add_message(f"{a}^{p} = {powers_str}")
+
+        mem: dict[int, int] = {1: a}
+
+        def mod_exp(power: int) -> int:
+            if power in mem:
+                return mem[power]
+
+            result = mod_exp(power // 2)
+            mem[power] = result * result % m
+
+            logstack.add_message(
+                f"5^{power} = 5^{power // 2} * 5^{power // 2} = {result} * {result} = {result * result % m}"
+            )
+
+            return result * result % m
+
+        starting_power = 2 ** (len(p_bin) - 1)
+        mod_exp(starting_power)
+
+        result = reduce(mul, [mem[power] for power in powers]) % m
+        results_str = "5 ^ 117 = " + " * ".join([str(mem[power]) for power in powers]) + f" % {m}"
+        logstack.add_message(f"\nFinal Result: {results_str} = {result}")
+
+        return result
+
 
 if __name__ == "__main__":
     logstack.add_message(" Euclid for: a = 113, b = 15")
@@ -192,3 +247,9 @@ if __name__ == "__main__":
     logstack.add_message(" CRT:")
     CryptographicCalculator.chinese_remainder_theorem([1, 3, 3], [3, 5, 7])
     logstack.display_logs()
+    logstack.empty_messages()
+
+    logstack.add_message(" Fast Exponentiation for: a = 5, p = 117, m = 19")
+    CryptographicCalculator.fast_exponentiation(5, 117, 19)
+    logstack.display_logs()
+    logstack.empty_messages()
