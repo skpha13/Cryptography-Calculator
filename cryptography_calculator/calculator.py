@@ -5,12 +5,14 @@ from typing import List, Tuple
 
 from cryptography_calculator.utils.logger import LogStack
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
-logstack = LogStack(logger=logger)
-
 
 class CryptographicCalculator:
+    logstack: LogStack | None = None
+
+    @staticmethod
+    def initialise_logger(logstack: LogStack) -> None:
+        CryptographicCalculator.logstack = logstack
+
     @staticmethod
     def euclid(a: int, b: int) -> List[Tuple[int, int, int]]:
         """Computes the greatest common divisor (GCD) of two numbers using the Euclidean Algorithm.
@@ -40,11 +42,11 @@ class CryptographicCalculator:
             remainder = a % b
             steps.append((a, b, remainder))
 
-            logstack.add_message(f"{a} = {a // b} * {b} + {remainder}")
+            CryptographicCalculator.logstack.add_message(f"{a} = {a // b} * {b} + {remainder}")
 
             a, b = b, remainder
 
-        logstack.add_message()
+        CryptographicCalculator.logstack.add_message()
         return steps
 
     @staticmethod
@@ -52,7 +54,7 @@ class CryptographicCalculator:
         x_new, a_new = (abs(x), abs(a)) if x < 0 and a < 0 else (x, a)
         y_new, b_new = (abs(y), abs(b)) if y < 0 and b < 0 else (y, b)
 
-        logstack.add_message(f"1 = {x_new} * {a_new} + {y_new} * {b_new}")
+        CryptographicCalculator.logstack.add_message(f"1 = {x_new} * {a_new} + {y_new} * {b_new}")
 
     @staticmethod
     def extended_euclid(a: int, b: int) -> Tuple[int, int, int]:
@@ -114,7 +116,7 @@ class CryptographicCalculator:
         if gcd != 1:
             raise ValueError(f"Modular inverse does not exist for {a} mod {b}")
 
-        logstack.add_message(f"\nFinal Result:\n\t inv({a}) mod {b} = {x % b}\n")
+        CryptographicCalculator.logstack.add_message(f"\nFinal Result:\n\t inv({a}) mod {b} = {x % b}\n")
         return x % b
 
     @staticmethod
@@ -151,25 +153,27 @@ class CryptographicCalculator:
             raise ValueError("Lists 'a' and 'b' must have the same length.")
         N = reduce(lambda x, y: x * y, b)
 
-        logstack.add_message(f"N = {N}")
+        CryptographicCalculator.logstack.add_message(f"N = {N}")
 
         x = 0
         index = 1
         for ai, bi in zip(a, b):
             Ni = N // bi
 
-            logstack.add_message(f"\n\t\t\t Step: {index}")
-            logstack.add_message(f"Modular Inverse for: a = {Ni}, b = {bi}:")
-            logstack.add_message(f"\tSteps:")
+            CryptographicCalculator.logstack.add_message(f"\n\t\t\t Step: {index}")
+            CryptographicCalculator.logstack.add_message(f"Modular Inverse for: a = {Ni}, b = {bi}:")
+            CryptographicCalculator.logstack.add_message(f"\tSteps:")
 
             bi_inv = CryptographicCalculator.modular_inverse(Ni, bi)
             x += ai * Ni * bi_inv
 
-            logstack.add_message(f"\nResult:\nai = {ai}, bi = {Ni}, bi_inv = {bi_inv}, x = {x}\n")
+            CryptographicCalculator.logstack.add_message(
+                f"\nResult:\nai = {ai}, bi = {Ni}, bi_inv = {bi_inv}, x = {x}\n"
+            )
 
             index += 1
 
-        logstack.add_message(f"Final Result: {x % N}")
+        CryptographicCalculator.logstack.add_message(f"Final Result: {x % N}")
         return x % N
 
     @staticmethod
@@ -191,16 +195,16 @@ class CryptographicCalculator:
             The result of (a^p) % m.
         """
         if p == 0:
-            logstack.add_message(f"Power is 0, result is trivial = 1")
+            CryptographicCalculator.logstack.add_message(f"Power is 0, result is trivial = 1")
             return 1
 
         p_bin = bin(p)[2:]
         powers = [2**power for power, value in enumerate(p_bin[::-1]) if value == "1"]
         powers_str = " * ".join([f"{a}^{power}" for power in powers])
 
-        logstack.add_message(f"Binary for {p} = {p_bin}\n")
-        logstack.add_message(f"\t\t\tSteps:")
-        logstack.add_message(f"{a}^{p} = {powers_str}")
+        CryptographicCalculator.logstack.add_message(f"Binary for {p} = {p_bin}\n")
+        CryptographicCalculator.logstack.add_message(f"\t\t\tSteps:")
+        CryptographicCalculator.logstack.add_message(f"{a}^{p} = {powers_str}")
 
         mem: dict[int, int] = {1: a}
 
@@ -211,7 +215,7 @@ class CryptographicCalculator:
             result = mod_exp(power // 2)
             mem[power] = result * result % m
 
-            logstack.add_message(
+            CryptographicCalculator.logstack.add_message(
                 f"5^{power} = 5^{power // 2} * 5^{power // 2} = {result} * {result} = {result * result % m}"
             )
 
@@ -222,34 +226,39 @@ class CryptographicCalculator:
 
         result = reduce(mul, [mem[power] for power in powers]) % m
         results_str = "5 ^ 117 = " + " * ".join([str(mem[power]) for power in powers]) + f" % {m}"
-        logstack.add_message(f"\nFinal Result: {results_str} = {result}")
+        CryptographicCalculator.logstack.add_message(f"\nFinal Result: {results_str} = {result}")
 
         return result
 
 
 if __name__ == "__main__":
-    logstack.add_message(" Euclid for: a = 113, b = 15")
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(level=logging.INFO)
+    logstack = LogStack(logger=logger)
+    CryptographicCalculator.initialise_logger(logstack)
+
+    CryptographicCalculator.logstack.add_message(" Euclid for: a = 113, b = 15")
     CryptographicCalculator.euclid(113, 15)
-    logstack.display_logs()
-    logstack.empty_messages()
+    CryptographicCalculator.logstack.display_logs()
+    CryptographicCalculator.logstack.empty_messages()
 
-    logstack.add_message(" Extended Euclid for: a = 113, b = 15")
+    CryptographicCalculator.logstack.add_message(" Extended Euclid for: a = 113, b = 15")
     CryptographicCalculator.extended_euclid(113, 15)
-    logstack.add_message()
-    logstack.display_logs()
-    logstack.empty_messages()
+    CryptographicCalculator.logstack.add_message()
+    CryptographicCalculator.logstack.display_logs()
+    CryptographicCalculator.logstack.empty_messages()
 
-    logstack.add_message(" Modular Inverse for: a = 9, b = 26")
+    CryptographicCalculator.logstack.add_message(" Modular Inverse for: a = 9, b = 26")
     CryptographicCalculator.modular_inverse(9, 26)
-    logstack.display_logs()
-    logstack.empty_messages()
+    CryptographicCalculator.logstack.display_logs()
+    CryptographicCalculator.logstack.empty_messages()
 
-    logstack.add_message(" CRT:")
+    CryptographicCalculator.logstack.add_message(" CRT:")
     CryptographicCalculator.chinese_remainder_theorem([1, 3, 3], [3, 5, 7])
-    logstack.display_logs()
-    logstack.empty_messages()
+    CryptographicCalculator.logstack.display_logs()
+    CryptographicCalculator.logstack.empty_messages()
 
-    logstack.add_message(" Fast Exponentiation for: a = 5, p = 117, m = 19")
+    CryptographicCalculator.logstack.add_message(" Fast Exponentiation for: a = 5, p = 117, m = 19")
     CryptographicCalculator.fast_exponentiation(5, 117, 19)
-    logstack.display_logs()
-    logstack.empty_messages()
+    CryptographicCalculator.logstack.display_logs()
+    CryptographicCalculator.logstack.empty_messages()
