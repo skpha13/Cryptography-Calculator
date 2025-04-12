@@ -49,11 +49,15 @@ def main():
             CryptographicCalculator.euclid(args.a, args.b),
         ),
         "extended-euclid": lambda args: (
-            CryptographicCalculator.logstack.add_message(f" Extended Euclid for: a = {args.a}, b = {args.b}"),
+            CryptographicCalculator.logstack.add_message(f" Euclid for: a = {args.a}, b = {args.b}"),
+            CryptographicCalculator.euclid(args.a, args.b),
+            CryptographicCalculator.logstack.add_message(f"\nExtended Euclid for: a = {args.a}, b = {args.b}"),
             CryptographicCalculator.extended_euclid(args.a, args.b),
         ),
         "modular-inverse": lambda args: (
-            CryptographicCalculator.logstack.add_message(f" Modular Inverse for: a = {args.a}, b = {args.b}"),
+            CryptographicCalculator.logstack.add_message(f" Euclid for: a = {args.a}, b = {args.b}"),
+            CryptographicCalculator.euclid(args.a, args.b),
+            CryptographicCalculator.logstack.add_message(f"\nModular Inverse for: a = {args.a}, b = {args.b}"),
             CryptographicCalculator.modular_inverse(args.a, args.b),
         ),
         "crt": lambda args: (

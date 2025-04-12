@@ -37,6 +37,8 @@ class CryptographicCalculator:
             - The remainder (`a % b`).
         """
         steps = []
+        a_copy = a
+        b_copy = b
 
         while b:
             remainder = a % b
@@ -46,7 +48,7 @@ class CryptographicCalculator:
 
             a, b = b, remainder
 
-        CryptographicCalculator.logstack.add_message()
+        CryptographicCalculator.logstack.add_message(f"\nFinal Result:\n\tgcd({a_copy}, {b_copy}) = {a}")
         return steps
 
     @staticmethod
@@ -161,7 +163,10 @@ class CryptographicCalculator:
             Ni = N // bi
 
             CryptographicCalculator.logstack.add_message(f"\n\t\t\t Step: {index}")
-            CryptographicCalculator.logstack.add_message(f"Modular Inverse for: a = {Ni}, b = {bi}:")
+            CryptographicCalculator.logstack.add_message(f"Euclid for: a = {Ni}, b = {bi}:")
+            CryptographicCalculator.euclid(Ni, bi)
+
+            CryptographicCalculator.logstack.add_message(f"\nModular Inverse for: a = {Ni}, b = {bi}:")
             CryptographicCalculator.logstack.add_message(f"\tSteps:")
 
             bi_inv = CryptographicCalculator.modular_inverse(Ni, bi)
@@ -216,7 +221,7 @@ class CryptographicCalculator:
             mem[power] = result * result % m
 
             CryptographicCalculator.logstack.add_message(
-                f"5^{power} = 5^{power // 2} * 5^{power // 2} = {result} * {result} = {result * result % m}"
+                f"{a}^{power} = {a}^{power // 2} * {a}^{power // 2} = {result} * {result} = {result * result % m}"
             )
 
             return result * result % m
@@ -225,7 +230,7 @@ class CryptographicCalculator:
         mod_exp(starting_power)
 
         result = reduce(mul, [mem[power] for power in powers]) % m
-        results_str = "5 ^ 117 = " + " * ".join([str(mem[power]) for power in powers]) + f" % {m}"
+        results_str = f"{a} ^ {p} = " + " * ".join([str(mem[power]) for power in powers]) + f" % {m}"
         CryptographicCalculator.logstack.add_message(f"\nFinal Result: {results_str} = {result}")
 
         return result
