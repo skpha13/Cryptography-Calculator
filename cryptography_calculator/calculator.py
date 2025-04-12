@@ -70,8 +70,6 @@ class CryptographicCalculator:
             First integer.
         b : int
             Second integer.
-        first_call : bool, Optional
-            Default value True.
 
         Returns
         -------
@@ -113,6 +111,9 @@ class CryptographicCalculator:
         ValueError
             If the modular inverse does not exist (i.e., `a` and `b` are not coprime).
         """
+        CryptographicCalculator.logstack.add_message(f"\nEuclid for: a = {a}, b = {b}:")
+        CryptographicCalculator.euclid(a, b)
+        CryptographicCalculator.logstack.add_message(f"\nExtended Euclid for: a = {a}, b = {b}:")
         gcd, x, _ = CryptographicCalculator.extended_euclid(a, b)
 
         if gcd != 1:
@@ -163,9 +164,6 @@ class CryptographicCalculator:
             Ni = N // bi
 
             CryptographicCalculator.logstack.add_message(f"\n\t\t\t Step: {index}")
-            CryptographicCalculator.logstack.add_message(f"Euclid for: a = {Ni}, b = {bi}:")
-            CryptographicCalculator.euclid(Ni, bi)
-
             CryptographicCalculator.logstack.add_message(f"\nModular Inverse for: a = {Ni}, b = {bi}:")
             CryptographicCalculator.logstack.add_message(f"\tSteps:")
 
