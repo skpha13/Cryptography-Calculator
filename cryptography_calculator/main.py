@@ -5,6 +5,8 @@ from argparse import ArgumentParser
 from cryptography_calculator.calculator import CryptographicCalculator
 from cryptography_calculator.utils.logger import LogStack
 
+# TODO: add rsa
+
 
 def add_arguments(parser: ArgumentParser) -> ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)

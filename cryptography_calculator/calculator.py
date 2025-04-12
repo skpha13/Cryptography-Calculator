@@ -4,6 +4,8 @@ from operator import mul
 from typing import List, Tuple
 
 from cryptography_calculator.utils.logger import LogStack
+from cryptography_calculator.utils.primes import two_prime_decomposition
+from cryptography_calculator.utils.rsa_functions import Lambda, Phi, RSAFunctions
 
 
 class CryptographicCalculator:
@@ -228,10 +230,40 @@ class CryptographicCalculator:
         mod_exp(starting_power)
 
         result = reduce(mul, [mem[power] for power in powers]) % m
-        results_str = f"{a} ^ {p} = " + " * ".join([str(mem[power]) for power in powers]) + f" % {m}"
-        CryptographicCalculator.logstack.add_message(f"\nFinal Result: {results_str} = {result}")
+        results_str = f"{a} ^ {p} % {m} = " + " * ".join([str(mem[power]) for power in powers]) + f" % {m}"
+        CryptographicCalculator.logstack.add_message(f"\nFinal Result:\n\ta^p % N = {results_str} = {result}")
 
         return result
+
+    @staticmethod
+    def rsa(N: int, e: int, m: int, modified: bool = False) -> Tuple[int, int, int]:
+        rsa_function: RSAFunctions = Lambda() if modified else Phi()
+        rsa_function_name = type(rsa_function).__name__
+
+        CryptographicCalculator.logstack.add_message(f"N = {N}\ne = {e}\nm = {m}")
+        CryptographicCalculator.logstack.add_message(f"\t\tStep 1: {rsa_function_name}(N)")
+
+        p, q = two_prime_decomposition(N)
+        result = rsa_function(p=p, q=q)
+
+        CryptographicCalculator.logstack.add_message(f"\nN = p * q\n{N} = {p} * {q}")
+        CryptographicCalculator.logstack.add_message(
+            f"{rsa_function_name}(N) = {type(rsa_function).__name__}({N}) = {result}"
+        )
+
+        CryptographicCalculator.logstack.add_message("\n\t\tStep 2: Encryption")
+        encrypted_message = CryptographicCalculator.fast_exponentiation(m, e, N)
+        CryptographicCalculator.logstack.add_message(f"\nCrypted Message: {encrypted_message}")
+
+        CryptographicCalculator.logstack.add_message("\n\t\tStep 3: Private Key")
+        d = CryptographicCalculator.modular_inverse(e, result)
+        CryptographicCalculator.logstack.add_message(f"Private Key: {d}")
+
+        CryptographicCalculator.logstack.add_message("\n\t\tStep 3: Decryption")
+        decrypted_message = CryptographicCalculator.fast_exponentiation(encrypted_message, d, N)
+        CryptographicCalculator.logstack.add_message(f"\nDecrypted Message: {decrypted_message}")
+
+        return encrypted_message, d, decrypted_message
 
 
 if __name__ == "__main__":
@@ -240,28 +272,33 @@ if __name__ == "__main__":
     logstack = LogStack(logger=logger)
     CryptographicCalculator.initialise_logger(logstack)
 
-    CryptographicCalculator.logstack.add_message(" Euclid for: a = 113, b = 15")
-    CryptographicCalculator.euclid(113, 15)
-    CryptographicCalculator.logstack.display_logs()
-    CryptographicCalculator.logstack.empty_messages()
+    # CryptographicCalculator.logstack.add_message(" Euclid for: a = 113, b = 15")
+    # CryptographicCalculator.euclid(113, 15)
+    # CryptographicCalculator.logstack.display_logs()
+    # CryptographicCalculator.logstack.empty_messages()
+    #
+    # CryptographicCalculator.logstack.add_message(" Extended Euclid for: a = 113, b = 15")
+    # CryptographicCalculator.extended_euclid(113, 15)
+    # CryptographicCalculator.logstack.add_message()
+    # CryptographicCalculator.logstack.display_logs()
+    # CryptographicCalculator.logstack.empty_messages()
+    #
+    # CryptographicCalculator.logstack.add_message(" Modular Inverse for: a = 9, b = 26")
+    # CryptographicCalculator.modular_inverse(9, 26)
+    # CryptographicCalculator.logstack.display_logs()
+    # CryptographicCalculator.logstack.empty_messages()
+    #
+    # CryptographicCalculator.logstack.add_message(" CRT:")
+    # CryptographicCalculator.chinese_remainder_theorem([1, 3, 3], [3, 5, 7])
+    # CryptographicCalculator.logstack.display_logs()
+    # CryptographicCalculator.logstack.empty_messages()
+    #
+    # CryptographicCalculator.logstack.add_message(" Fast Exponentiation for: a = 5, p = 117, m = 19")
+    # CryptographicCalculator.fast_exponentiation(5, 117, 19)
+    # CryptographicCalculator.logstack.display_logs()
+    # CryptographicCalculator.logstack.empty_messages()
 
-    CryptographicCalculator.logstack.add_message(" Extended Euclid for: a = 113, b = 15")
-    CryptographicCalculator.extended_euclid(113, 15)
-    CryptographicCalculator.logstack.add_message()
-    CryptographicCalculator.logstack.display_logs()
-    CryptographicCalculator.logstack.empty_messages()
-
-    CryptographicCalculator.logstack.add_message(" Modular Inverse for: a = 9, b = 26")
-    CryptographicCalculator.modular_inverse(9, 26)
-    CryptographicCalculator.logstack.display_logs()
-    CryptographicCalculator.logstack.empty_messages()
-
-    CryptographicCalculator.logstack.add_message(" CRT:")
-    CryptographicCalculator.chinese_remainder_theorem([1, 3, 3], [3, 5, 7])
-    CryptographicCalculator.logstack.display_logs()
-    CryptographicCalculator.logstack.empty_messages()
-
-    CryptographicCalculator.logstack.add_message(" Fast Exponentiation for: a = 5, p = 117, m = 19")
-    CryptographicCalculator.fast_exponentiation(5, 117, 19)
+    CryptographicCalculator.logstack.add_message(" RSA:")
+    CryptographicCalculator.rsa(119, 5, 11, modified=True)
     CryptographicCalculator.logstack.display_logs()
     CryptographicCalculator.logstack.empty_messages()
