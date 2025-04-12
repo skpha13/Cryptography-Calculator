@@ -125,4 +125,44 @@ class TestLogStack:
             "\nFinal Result:\n\ta^p % N = 23 ^ 43 % 77 = 23 * 67 * 67 * 67 % 77 = 23",
         ]
 
-    # TODO: add rsa
+    def test_logging_rsa(self):
+        CryptographicCalculator.logstack.empty_messages()
+        CryptographicCalculator.rsa(119, 5, 11)
+
+        assert CryptographicCalculator.logstack.messages == [
+            "N = 119\ne = 5\nm = 11",
+            "\t\tStep 1: Phi(N)",
+            "\nN = p * q\n119 = 7 * 17",
+            "Phi(N) = Phi(119) = 96",
+            "\n\t\tStep 2: Encryption",
+            "Binary for 5 = 101\n",
+            "\t\t\tSteps:",
+            "11^5 = 11^1 * 11^4",
+            "11^2 = 11^1 * 11^1 = 11 * 11 = 2",
+            "11^4 = 11^2 * 11^2 = 2 * 2 = 4",
+            "\nFinal Result:\n\ta^p % N = 11 ^ 5 % 119 = 11 * 4 % 119 = 44",
+            "\nCrypted Message: 44",
+            "\n\t\tStep 3: Private Key",
+            "\nEuclid for: a = 5, b = 96:",
+            "5 = 0 * 96 + 5",
+            "96 = 19 * 5 + 1",
+            "5 = 5 * 1 + 0",
+            "\nFinal Result:\n\tgcd(5, 96) = 1",
+            "\nExtended Euclid for: a = 5, b = 96:",
+            "1 = 1 * 1 + 0 * 5",
+            "1 = -19 * 5 + 1 * 96",
+            "\nFinal Result:\n\t inv(5) mod 96 = 77\n",
+            "Private Key: 77",
+            "\n\t\tStep 3: Decryption",
+            "Binary for 77 = 1001101\n",
+            "\t\t\tSteps:",
+            "44^77 = 44^1 * 44^4 * 44^8 * 44^64",
+            "44^2 = 44^1 * 44^1 = 44 * 44 = 32",
+            "44^4 = 44^2 * 44^2 = 32 * 32 = 72",
+            "44^8 = 44^4 * 44^4 = 72 * 72 = 67",
+            "44^16 = 44^8 * 44^8 = 67 * 67 = 86",
+            "44^32 = 44^16 * 44^16 = 86 * 86 = 18",
+            "44^64 = 44^32 * 44^32 = 18 * 18 = 86",
+            "\nFinal Result:\n\ta^p % N = 44 ^ 77 % 119 = 44 * 72 * 67 * 86 % 119 = 11",
+            "\nDecrypted Message: 11",
+        ]

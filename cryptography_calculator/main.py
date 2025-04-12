@@ -5,8 +5,6 @@ from argparse import ArgumentParser
 from cryptography_calculator.calculator import CryptographicCalculator
 from cryptography_calculator.utils.logger import LogStack
 
-# TODO: add rsa
-
 
 def add_arguments(parser: ArgumentParser) -> ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -36,6 +34,18 @@ def add_arguments(parser: ArgumentParser) -> ArgumentParser:
     parser_exp.add_argument("a", type=int, help="Base number")
     parser_exp.add_argument("p", type=int, help="Exponent")
     parser_exp.add_argument("m", type=int, help="Modulo value")
+
+    # RSA
+    parser_rsa = subparsers.add_parser("rsa", help="Compute RSA private key, encrypt/decrypt message")
+    parser_rsa.add_argument("N", type=int, help="Modulo value")
+    parser_rsa.add_argument("e", type=int, help="Public key")
+    parser_rsa.add_argument("m", type=int, help="Message to encrypt")
+    parser_rsa.add_argument(
+        "--modified",
+        type=bool,
+        help="Whether or not to use the modified or classical method. Optional, default one to use is classical",
+        default=False,
+    )
 
     return parser
 
@@ -69,6 +79,10 @@ def main():
                 f" Fast Exponentiation for: a = {args.a}, p = {args.p}, m = {args.m}"
             ),
             CryptographicCalculator.fast_exponentiation(args.a, args.p, args.m),
+        ),
+        "rsa": lambda args: (
+            CryptographicCalculator.logstack.add_message("RSA"),
+            CryptographicCalculator.rsa(args.N, args.e, args.m),
         ),
     }
 
