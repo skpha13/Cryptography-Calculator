@@ -1,9 +1,11 @@
 import argparse
 import logging
 from argparse import ArgumentParser
+from typing import get_args
 
 from cryptography_calculator.calculator import CryptographicCalculator
 from cryptography_calculator.utils.logger import LogStack
+from cryptography_calculator.utils.types import ElGamalOperations
 
 
 def add_arguments(parser: ArgumentParser) -> ArgumentParser:
@@ -47,6 +49,15 @@ def add_arguments(parser: ArgumentParser) -> ArgumentParser:
         default=False,
     )
 
+    # El Gamal
+    parser_el_gamal = subparsers.add_parser("el-gamal", help="Compute El Gamal public key and crypted/decrypt message")
+    parser_el_gamal.add_argument("p", type=int, help="Modulo Value")
+    parser_el_gamal.add_argument("g", type=int, help="Generator Value")
+    parser_el_gamal.add_argument("k", type=int, help="Private Key of A")
+    parser_el_gamal.add_argument("y", type=int, help="Private Key of B")
+    parser_el_gamal.add_argument("m", type=int, help="Message to encrypt")
+    parser_el_gamal.add_argument("operation", choices=get_args(ElGamalOperations), help="Message to encrypt")
+
     return parser
 
 
@@ -81,8 +92,12 @@ def main():
             CryptographicCalculator.fast_exponentiation(args.a, args.p, args.m),
         ),
         "rsa": lambda args: (
-            CryptographicCalculator.logstack.add_message("RSA"),
+            CryptographicCalculator.logstack.add_message(" RSA:"),
             CryptographicCalculator.rsa(args.N, args.e, args.m),
+        ),
+        "el-gamal": lambda args: (
+            CryptographicCalculator.logstack.add_message(" El Gamal:"),
+            CryptographicCalculator.el_gamal(args.p, args.g, args.k, args.y, args.m, args.operation),
         ),
     }
 

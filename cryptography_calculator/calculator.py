@@ -1,4 +1,5 @@
 import logging
+from abc import ABC, abstractmethod
 from functools import reduce
 from operator import mul
 from typing import List, Tuple
@@ -6,6 +7,21 @@ from typing import List, Tuple
 from cryptography_calculator.utils.logger import LogStack
 from cryptography_calculator.utils.primes import two_prime_decomposition
 from cryptography_calculator.utils.rsa_functions import Lambda, Phi, RSAFunctions
+from cryptography_calculator.utils.types import ElGamalOperations
+
+
+class Operation(ABC):
+    @abstractmethod
+    def pow(self, x: int, y: int, m: int) -> int:
+        pass
+
+    @abstractmethod
+    def multiply(self, x: int, y: int, m: int) -> int:
+        pass
+
+    @abstractmethod
+    def get_symbols(self):
+        pass
 
 
 class CryptographicCalculator:
@@ -288,6 +304,110 @@ class CryptographicCalculator:
 
         return encrypted_message, d, decrypted_message
 
+    @staticmethod
+    def el_gamal(p: int, g: int, k: int, y: int, m: int, operation: ElGamalOperations) -> Tuple[int, Tuple[int, int]]:
+        """Performs ElGamal encryption and decryption with detailed logging.
+
+        Parameters
+        ----------
+        p : int
+            A prime number, the modulus used for modular arithmetic.
+        g : int
+            The generator.
+        k : int
+            The private key of A.
+        y : int
+            The private key of B (ephemeral key).
+        m : int
+            The message to be encrypted.
+        operation : ElGamalOperations
+            Can be either `additive` or `multiplicative`.
+
+        Returns
+        -------
+        h : int
+            The public key component computed as `g^k mod p`.
+        Tuple[int, Tuple[int, int]]
+            A tuple containing the public key `h` and the ciphertext `(c1, c2)`:
+            - c1 = g^y mod p
+            - c2 = m * h^y mod p  (or additive equivalent)
+        """
+        operation = Multiplicative() if operation == "multiplicative" else Additive()
+        pow_symbol, multiply_symbol = operation.get_symbols()
+
+        h = operation.pow(g, k, p)
+        CryptographicCalculator.logstack.add_message(f"\nPublic Key h:")
+        CryptographicCalculator.logstack.add_message(
+            f"\nh = g{pow_symbol}k % p" f"\nh = {g}{pow_symbol}{k} % {p}" f"\nh = {h}"
+        )
+
+        CryptographicCalculator.logstack.add_message(f"\nC = (c1, c2)")
+        c1 = operation.pow(g, y, p)
+        CryptographicCalculator.logstack.add_message(
+            f"\nc1 = g{pow_symbol}y % p" f"\nc1 = {g}{pow_symbol}{y} % {p}" f"\nc1 = {c1}"
+        )
+
+        CryptographicCalculator.logstack.add_message(f"\nc2 = m {multiply_symbol} h{pow_symbol}y")
+        CryptographicCalculator.logstack.add_message(f"\nFirst: h{pow_symbol}y")
+        result = operation.pow(h, y, p)
+        CryptographicCalculator.logstack.add_message(f"\nh{pow_symbol}y % p = {h}{pow_symbol}{y} % {p} = {result}")
+
+        CryptographicCalculator.logstack.add_message(f"\nSecond: m {multiply_symbol} h{pow_symbol}y % p")
+        c2 = operation.multiply(m, result, p)
+        CryptographicCalculator.logstack.add_message(f"\nc2 = m {multiply_symbol} h{pow_symbol}y % p")
+        CryptographicCalculator.logstack.add_message(f"c2 = {m} {multiply_symbol} {h}{pow_symbol}{y} % {p}")
+        CryptographicCalculator.logstack.add_message(f"c2 = {m} {multiply_symbol} {result} % {p}")
+        CryptographicCalculator.logstack.add_message(f"c2 = {c2}")
+
+        CryptographicCalculator.logstack.add_message(f"\nC = (c1, c2) = ({c1}, {c2})")
+
+        CryptographicCalculator.logstack.add_message(f"\nDecryption: m = c2 {multiply_symbol} c1{pow_symbol}(-k)")
+        CryptographicCalculator.logstack.add_message(f"\nFirst: c1{pow_symbol}(-k)")
+
+        if isinstance(operation, Additive):
+            result = (-k * c1) % p
+            CryptographicCalculator.logstack.add_message(f"\nResult: -k * c1 % p = {-k} * {c1} % {p} = {result}")
+        else:
+            CryptographicCalculator.logstack.add_message(f"\nFast Exponentiation: c1^k % p = {c1}^{k} % {p}")
+            f_exp = CryptographicCalculator.fast_exponentiation(c1, k, p)
+
+            CryptographicCalculator.logstack.add_message(f"\nModular Inverse: inv(c1^k) % p = inv({f_exp}) % {p}")
+            result = CryptographicCalculator.modular_inverse(f_exp, p)
+            CryptographicCalculator.logstack.add_message(
+                f"\nResult: c1{pow_symbol}(-k) % p = {c1}{pow_symbol}{-k} % {p} = {result}"
+            )
+
+        CryptographicCalculator.logstack.add_message(f"\nSecond: c2 {multiply_symbol} c1{pow_symbol}(-k) % p")
+        m = operation.multiply(c2, result, p)
+        CryptographicCalculator.logstack.add_message(f"\nm = c2 {multiply_symbol} c1{pow_symbol}(-k) % p")
+        CryptographicCalculator.logstack.add_message(f"m = {c2} {multiply_symbol} {c1}{pow_symbol}{-k} % {p}")
+        CryptographicCalculator.logstack.add_message(f"m = {c2} {multiply_symbol} {result} % {p}")
+        CryptographicCalculator.logstack.add_message(f"m = {m}")
+
+        return h, (c1, c2)
+
+
+class Additive(Operation):
+    def pow(self, x: int, y: int, m: int) -> int:
+        return (x * y) % m
+
+    def multiply(self, x: int, y: int, m: int) -> int:
+        return (x + y) % m
+
+    def get_symbols(self):
+        return "*", "+"
+
+
+class Multiplicative(Operation):
+    def pow(self, x: int, y: int, m: int) -> int:
+        return CryptographicCalculator.fast_exponentiation(x, y, m)
+
+    def multiply(self, x: int, y: int, m: int) -> int:
+        return (x * y) % m
+
+    def get_symbols(self):
+        return "^", "*"
+
 
 if __name__ == "__main__":
     logger = logging.getLogger(__name__)
@@ -295,7 +415,11 @@ if __name__ == "__main__":
     logstack = LogStack(logger=logger)
     CryptographicCalculator.initialise_logger(logstack)
 
-    CryptographicCalculator.logstack.add_message(" RSA:")
-    CryptographicCalculator.rsa(119, 5, 11, modified=True)
+    # CryptographicCalculator.logstack.add_message(" RSA:")
+    # CryptographicCalculator.rsa(119, 5, 11, modified=True)
+
+    # CryptographicCalculator.el_gamal(11, 2, 9, 7, 8, "multiplicative")
+    CryptographicCalculator.el_gamal(100, 31, 17, 11, 72, "additive")
+
     CryptographicCalculator.logstack.display_logs()
     CryptographicCalculator.logstack.empty_messages()
