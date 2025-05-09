@@ -58,6 +58,30 @@ def add_arguments(parser: ArgumentParser) -> ArgumentParser:
     parser_el_gamal.add_argument("m", type=int, help="Message to encrypt")
     parser_el_gamal.add_argument("operation", choices=get_args(ElGamalOperations), help="Message to encrypt")
 
+    # Multiparty Computation
+    parser_mpc = subparsers.add_parser(
+        "multiparty-computation", help="Perform secure multiparty computation with secret-shared values"
+    )
+    parser_mpc.add_argument(
+        "--sharing-initial",
+        type=lambda s: eval(s),
+        required=True,
+        help="Initial sharing polynomials (list of lists of coefficients)",
+    )
+    parser_mpc.add_argument(
+        "--sharing-multiply",
+        type=lambda s: eval(s),
+        required=True,
+        help="Multiplication sharing polynomials (list of lists of coefficients)",
+    )
+    parser_mpc.add_argument("--modulo", type=int, required=True, help="Modulo for field arithmetic")
+    parser_mpc.add_argument(
+        "--operations",
+        type=lambda s: eval(s),
+        required=True,
+        help="List of operations to perform in the format [(op, var1, var2), ...]",
+    )
+
     return parser
 
 
@@ -99,6 +123,12 @@ def main():
             CryptographicCalculator.logstack.add_message(" El Gamal:"),
             CryptographicCalculator.el_gamal(args.p, args.g, args.k, args.y, args.m, args.operation),
         ),
+        "multiparty-computation": lambda args: (
+            CryptographicCalculator.logstack.add_message(" Multiparty Computation:"),
+            CryptographicCalculator.multiparty_computation(
+                args.sharing_initial, args.sharing_multiply, args.modulo, args.operations
+            ),
+        ),
     }
 
     logger = logging.getLogger(__name__)
@@ -114,3 +144,8 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+"""
+python ./cryptography_calculator/main.py multiparty-computation --sharing-initial '[[3, 1], [4, 2], [5, 3]]'  --sharing-multiply '[[0, 4], [0, 5], [0, 6]]' --modulo 1000000  --operations '[[\"mul\", \"x1\", \"x2\"], [\"add\", \"temp0\", \"x3\"]]'
+"""

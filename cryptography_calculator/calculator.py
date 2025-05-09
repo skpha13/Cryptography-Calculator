@@ -2,12 +2,15 @@ import logging
 from abc import ABC, abstractmethod
 from functools import reduce
 from operator import mul
-from typing import List, Tuple
+from typing import Dict, List, Tuple
+
+import numpy as np
 
 from cryptography_calculator.utils.logger import LogStack
 from cryptography_calculator.utils.primes import two_prime_decomposition
 from cryptography_calculator.utils.rsa_functions import Lambda, Phi, RSAFunctions
 from cryptography_calculator.utils.types import ElGamalOperations
+from cryptography_calculator.utils.vector import compute_polynomial_value, polynom_to_str, vector_to_str
 
 
 class Operation(ABC):
@@ -386,6 +389,200 @@ class CryptographicCalculator:
 
         return h, (c1, c2)
 
+    @staticmethod
+    def __compute_shares(polynomials: List[List[int]], modulo: int) -> Dict[str, List[int]]:
+        """Evaluates secret-sharing polynomials for each variable and user.
+
+        Parameters
+        ----------
+        polynomials : List[List[int]]
+            A list of polynomials, where each polynomial is represented by its coefficients.
+            Each polynomial corresponds to a secret value to be shared.
+        modulo : int
+            The modulo value used for operations to ensure results remain within a finite field.
+
+        Returns
+        -------
+        Dict[str, List[int]]
+            A dictionary mapping variable names (e.g., "x1", "x2", ...) to lists of integer shares,
+            where each share is computed as the polynomial evaluated at a user's index (1-based).
+        """
+
+        CryptographicCalculator.logstack.add_message()
+
+        shared_vars: Dict[str, List[int]] = {}
+        for idx, coeffs in enumerate(polynomials):
+            var_name = f"x{idx + 1}"
+            shares = [compute_polynomial_value(coeffs, user + 1) % modulo for user in range(len(polynomials))]
+            shared_vars[var_name] = shares
+            CryptographicCalculator.logstack.add_message(f"{var_name} => {vector_to_str(shares)}")
+
+        return shared_vars
+
+    @staticmethod
+    def __element_wise_operation(op_type: str, a_shares: List[int], b_shares: List[int], modulo: int) -> List[int]:
+        """Applies an arithmetic operation element-wise to two lists of shares.
+
+        Parameters
+        ----------
+        op_type : str
+            The type of operation to apply. Either "add" or "mul".
+        a_shares : List[int]
+            The first list of shares.
+        b_shares : List[int]
+            The second list of shares.
+        modulo : int
+            The modulo used for arithmetic operations.
+
+        Returns
+        -------
+        List[int]
+            A new list containing the result of the operation on each pair of shares.
+        """
+
+        result_shares = [0] * len(a_shares)
+        for i in range(len(a_shares)):
+            if op_type == "mul":
+                result_shares[i] = (a_shares[i] * b_shares[i]) % modulo
+            elif op_type == "add":
+                result_shares[i] = (a_shares[i] + b_shares[i]) % modulo
+            else:
+                raise ValueError(f"Unsupported operation: {op_type}")
+
+        return result_shares
+
+    @staticmethod
+    def __add_operation(a_shares: List[int], b_shares: List[int], modulo: int) -> List[int]:
+        """Performs an element-wise addition of two share lists under modulo arithmetic.
+
+        Parameters
+        ----------
+        a_shares : List[int]
+            The first list of shares.
+        b_shares : List[int]
+            The second list of shares.
+        modulo : int
+            The modulo used for arithmetic operations.
+
+        Returns
+        -------
+        List[int]
+            The resulting list of shares after addition.
+        """
+
+        result_shares = CryptographicCalculator.__element_wise_operation("add", a_shares, b_shares, modulo)
+
+        CryptographicCalculator.logstack.add_message(f"\nADD {a_shares} + {b_shares} => {result_shares}")
+
+        return result_shares
+
+    @staticmethod
+    def __mul_operation(
+        sharing_multiply: List[List[int]], a_shares: List[int], b_shares: List[int], modulo: int
+    ) -> List[int]:
+        """Performs a secure multiplication of two share lists using pre-shared multiplication triples.
+
+        Parameters
+        ----------
+        sharing_multiply : List[List[int]]
+            A list of polynomials (as coefficient lists) used for re-sharing the product.
+            This is modified in-place with intermediate multiplication results.
+        a_shares : List[int]
+            The first list of shares.
+        b_shares : List[int]
+            The second list of shares.
+        modulo : int
+            The modulo used for arithmetic operations.
+
+        Returns
+        -------
+        List[int]
+            The resulting list of shares after secure multiplication, projected using a predefined R vector.
+        """
+
+        R = [3, -3, 1]
+        users = len(sharing_multiply)
+
+        result_shares = CryptographicCalculator.__element_wise_operation("mul", a_shares, b_shares, modulo)
+        CryptographicCalculator.logstack.add_message(f"\n a)")
+        CryptographicCalculator.logstack.add_message(f"\nMUL {a_shares} * {b_shares}")
+        CryptographicCalculator.logstack.add_message(vector_to_str(result_shares))
+
+        for i in range(len(result_shares)):
+            sharing_multiply[i][0] = result_shares[i]
+
+        CryptographicCalculator.logstack.add_message(f"\n b)")
+        for i in range(users):
+            CryptographicCalculator.logstack.add_message(f"{polynom_to_str(sharing_multiply[i])}")
+
+        CryptographicCalculator.logstack.add_message(f"\n c)")
+        shares_multiply = CryptographicCalculator.__compute_shares(sharing_multiply, modulo)
+        shares_r = np.dot(R, np.array(list(shares_multiply.values())))
+
+        CryptographicCalculator.logstack.add_message(f"\n d)")
+        CryptographicCalculator.logstack.add_message(f"\nMatrix Multiplication with R")
+        CryptographicCalculator.logstack.add_message(vector_to_str(shares_r))
+
+        return shares_r.tolist()
+
+    @staticmethod
+    def multiparty_computation(
+        sharing_initial: List[List[int]],
+        sharing_multiply: List[List[int]],
+        modulo: int,
+        operations: List[Tuple[str, str, str]],
+    ) -> int:
+        """Executes a sequence of multiparty computations (additions and multiplications) over shared secrets.
+
+        Parameters
+        ----------
+        sharing_initial : List[List[int]]
+            A list of polynomial coefficient lists representing the secrets to be shared.
+        sharing_multiply : List[List[int]]
+            A list of polynomial coefficient lists used to re-share products in secure multiplications.
+        modulo : int
+            The modulo used for all arithmetic operations.
+        operations : List[Tuple[str, str, str]]
+            A list of operations to perform in sequence. Each operation is a tuple of the form
+            (op_type, operand_a, operand_b), where op_type is either "add" or "mul".
+
+        Returns
+        -------
+        int
+            The final result of the computation, obtained by combining the final shares using a dot product with vector R.
+        """
+
+        R = [3, -3, 1]
+
+        op_type, a, b = operations[0]
+
+        CryptographicCalculator.logstack.add_message(f"\n1. ")
+        shares = CryptographicCalculator.__compute_shares(sharing_initial, modulo)
+        CryptographicCalculator.logstack.add_message(f"\n2. ")
+        a_shares = shares[a]
+        b_shares = shares[b]
+
+        if op_type == "add":
+            result_shares = CryptographicCalculator.__add_operation(a_shares, b_shares, modulo)
+        else:
+            result_shares = CryptographicCalculator.__mul_operation(sharing_multiply, a_shares, b_shares, modulo)
+
+        op_type, a, b = operations[1]
+        CryptographicCalculator.logstack.add_message(f"\n3. ")
+        a_shares = result_shares
+        b_shares = shares[b]
+
+        if op_type == "add":
+            result_shares = CryptographicCalculator.__add_operation(a_shares, b_shares, modulo)
+        else:
+            result_shares = CryptographicCalculator.__mul_operation(sharing_multiply, a_shares, b_shares, modulo)
+
+        result = int(np.dot(R, result_shares))
+        CryptographicCalculator.logstack.add_message(f"\n4. Dot Product with R: {result}")
+        CryptographicCalculator.logstack.add_message(f"\nFinal Result: {result}")
+
+        return result
+
 
 class Additive(Operation):
     def pow(self, x: int, y: int, m: int) -> int:
@@ -419,7 +616,21 @@ if __name__ == "__main__":
     # CryptographicCalculator.rsa(119, 5, 11, modified=True)
 
     # CryptographicCalculator.el_gamal(11, 2, 9, 7, 8, "multiplicative")
-    CryptographicCalculator.el_gamal(100, 31, 17, 11, 72, "additive")
+    # CryptographicCalculator.el_gamal(100, 31, 17, 11, 72, "additive")
+
+    CryptographicCalculator.multiparty_computation(
+        [[3, 1], [4, 2], [5, 3]],
+        [[0, 4], [0, 5], [0, 6]],
+        1_000_000,
+        operations=[("mul", "x1", "x2"), ("add", "temp0", "x3")],
+    )
+
+    # CryptographicCalculator.multiparty_computation(
+    #     [[6, 3], [11, 5], [13, 9]],
+    #     [[0, 1], [0, 3], [6, 6]],
+    #     1_000_000,
+    #     operations=[("add", "x1", "x3"), ("mul", "temp0", "x2")],
+    # )
 
     CryptographicCalculator.logstack.display_logs()
     CryptographicCalculator.logstack.empty_messages()
