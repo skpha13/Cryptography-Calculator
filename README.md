@@ -76,7 +76,7 @@ python ./cryptography_calculator/main.py multiparty-computation --sharing-initia
 For development purposes, install the optional packages with:
 
 ```bash
-pip install stringart[dev]
+pip install cryptography-calculator[dev]
 ```
 
 This will install the following tools:
