@@ -255,7 +255,7 @@ class CryptographicCalculator:
         return result
 
     @staticmethod
-    def rsa(N: int, e: int, m: int, modified: bool = False) -> Tuple[int, int, int]:
+    def rsa(N: int, e: int, m: int, modified: bool = False, decrypt: bool = False) -> Tuple[int, int, int]:
         """Perform RSA encryption and decryption, compute the private key.
 
         Parameters
@@ -268,7 +268,10 @@ class CryptographicCalculator:
             The message to be encrypted and decrypted.
         modified : bool, optional
             If True, uses a modified version of the function for the RSA key generation;
-            if False, the standard function is used. The default is False.
+            If False, the standard function is used. The default is False.
+        decrypt : bool, optional
+            If True, it will decrypt the message given.
+            if False, it will encrypt and decrypt the message given.
 
         Returns
         -------
@@ -293,9 +296,12 @@ class CryptographicCalculator:
             f"{rsa_function_name}(N) = {type(rsa_function).__name__}({N}) = {result}"
         )
 
-        CryptographicCalculator.logstack.add_message("\n\t\tStep 2: Encryption")
-        encrypted_message = CryptographicCalculator.fast_exponentiation(m, e, N)
-        CryptographicCalculator.logstack.add_message(f"\nCrypted Message: {encrypted_message}")
+        if not decrypt:
+            CryptographicCalculator.logstack.add_message("\n\t\tStep 2: Encryption")
+            encrypted_message = CryptographicCalculator.fast_exponentiation(m, e, N)
+            CryptographicCalculator.logstack.add_message(f"\nCrypted Message: {encrypted_message}")
+        else:
+            encrypted_message = m
 
         CryptographicCalculator.logstack.add_message("\n\t\tStep 3: Private Key")
         d = CryptographicCalculator.modular_inverse(e, result)

@@ -48,6 +48,12 @@ def add_arguments(parser: ArgumentParser) -> ArgumentParser:
         help="Whether or not to use the modified or classical method. Optional, default one to use is classical",
         default=False,
     )
+    parser_rsa.add_argument(
+        "--decrypt",
+        type=bool,
+        help="Whether or not to encrypt or decrypt the message. Optional, default one to use is False",
+        default=False,
+    )
 
     # El Gamal
     parser_el_gamal = subparsers.add_parser("el-gamal", help="Compute El Gamal public key and crypted/decrypt message")
@@ -117,7 +123,7 @@ def main():
         ),
         "rsa": lambda args: (
             CryptographicCalculator.logstack.add_message(" RSA:"),
-            CryptographicCalculator.rsa(args.N, args.e, args.m),
+            CryptographicCalculator.rsa(args.N, args.e, args.m, args.modified, args.decrypt),
         ),
         "el-gamal": lambda args: (
             CryptographicCalculator.logstack.add_message(" El Gamal:"),
