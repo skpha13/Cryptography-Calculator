@@ -150,8 +150,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-"""
-python ./cryptography_calculator/main.py multiparty-computation --sharing-initial '[[3, 1], [4, 2], [5, 3]]'  --sharing-multiply '[[0, 4], [0, 5], [0, 6]]' --modulo 1000000  --operations '[[\"mul\", \"x1\", \"x2\"], [\"add\", \"temp0\", \"x3\"]]'
-"""
