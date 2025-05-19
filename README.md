@@ -66,7 +66,7 @@ python ./cryptography_calculator/main.py el-gamal 467 2 127 327 123 additive
 python ./cryptography_calculator/main.py el-gamal 467 2 127 327 123 multiplicative
 
 # multiparty computation
-python ./cryptography_calculator/main.py multiparty-computation --sharing-initial '[[3, 1], [4, 2], [5, 3]]' --sharing-multiply '[[0, 4], [0, 5], [0, 6]]' --modulo 1000000  --operations '[[\"mul\", \"x1\", \"x2\"], [\"add\", \"temp0\", \"x3\"]]'
+python ./cryptography_calculator/main.py multiparty-computation --sharing-initial '[[3, 1], [4, 2], [5, 3]]' --sharing-multiply '[[0, 4], [0, 5], [0, 6]]' --modulo 1000000  --operations "[['mul', 'x1', 'x2'], ['add', 'temp0', 'x3']]"
 ```
 
 ## Developer Documentation
