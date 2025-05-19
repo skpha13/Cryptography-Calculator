@@ -15,6 +15,9 @@ class TestFastExponentiation:
             (10, 100, 17, 4),  # 10^100 % 17
             (123, 456, 789, 699),  # Large numbers test
             (5, 117, 19, 1),
+            (13, 21, 43, 1),
+            (45, 43, 85, 80),
+            (23, 43, 77, 23),
         ],
     )
     def test_fast_exponentiation(self, a, p, m, expected):

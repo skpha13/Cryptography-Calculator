@@ -12,6 +12,14 @@ class TestModularInverse:
             (10, 17, 12),  # 10 * 12 ≡ 1 (mod 17)
             (7, 13, 2),  # 7 * 2 ≡ 1 (mod 13)
             (1, 2, 1),  # 1 is always its own modular inverse
+            (5, 48, 29),
+            (3, 64, 43),
+            (8, 11, 7),
+            (7, 60, 43),
+            (74, 383, 88),
+            (113, 15, 2),
+            (9, 26, 3),
+            (7, 25, 18),
         ],
     )
     def test_mod_inverse(self, a, b, expected):
